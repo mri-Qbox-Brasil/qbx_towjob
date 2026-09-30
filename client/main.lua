@@ -148,7 +148,9 @@ local function CreateZone(type, number)
 end
 
 local function deliverVehicle(vehicle)
-    DeleteVehicle(vehicle)
+    local completed = lib.callback.await('qb-tow:server:completeTow', false, VehToNet(vehicle))
+    if not completed then return end
+
     RemoveBlip(CurrentBlip2)
     JobsDone += 1
     VehicleSpawned = false
@@ -200,6 +202,7 @@ RegisterNetEvent('qb-tow:client:SpawnVehicle', function()
     local coords = sharedConfig.locations["vehicle"].coords
     local plate = "TOWR"..lib.string.random('1111')
     local netId = lib.callback.await('qb-tow:server:spawnVehicle', false, vehicleInfo, coords, true)
+    if not netId then return end
     local timeout = 100
     while not NetworkDoesEntityExistWithNetworkId(netId) and timeout > 0 do
         Wait(10)
@@ -385,7 +388,7 @@ end)
 RegisterNetEvent('qb-tow:client:PaySlip', function()
     if JobsDone > 0 then
         RemoveBlip(CurrentBlip)
-        TriggerServerEvent("qb-tow:server:11101110", JobsDone)
+        TriggerServerEvent('qb-tow:server:11101110')
         JobsDone = 0
         NpcOn = false
     else
@@ -396,6 +399,7 @@ end)
 RegisterNetEvent('qb-tow:client:SpawnNPCVehicle', function()
     if VehicleSpawned then return end
     local netId = lib.callback.await('qb-tow:server:spawnVehicle', false, CurrentLocation.model, vec3(CurrentLocation.x, CurrentLocation.y, CurrentLocation.z))
+    if not netId then return end
     local veh = NetToVeh(netId)
     SetVehicleFuelLevel(veh, 0.0)
     VehicleSpawned = true
